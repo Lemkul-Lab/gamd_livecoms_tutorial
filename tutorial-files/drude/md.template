@@ -1,0 +1,127 @@
+# Example NAMD input for NPT simulation for a solvated protein
+# Drude polarizable FF
+# Temperature & pressure control using Langevin
+# Start dynamics
+
+#######################################################
+#    PDB, PSF, PAR, VEL & INPUT PARAMETERS
+#######################################################
+structure       ala.drude.psf
+coordinates     <BASENAME>.coor
+velocities      <BASENAME>.vel 
+extendedSystem  <BASENAME>.xsc
+
+parameters      $HOME/charmm/toppar_drude/2019f/toppar_drude_master_protein_2019f.str
+
+paraTypeCharmm  on 
+mergeCrossterms yes   # To include CMAP correction
+
+seed            12345
+#temperature     298.0
+timestep        1.0
+stepspercycle   20    # number of steps before making new pairlist
+
+######################################################
+# Output Files and Output Frequency
+######################################################
+binaryoutput    no
+binaryrestart   no 
+
+outputname      <BASE>.drude.<CURR> 
+dcdfile         <BASE>.drude.<CURR>.dcd
+restartname     <BASE>.drude.<CURR>.rst
+
+outputEnergies  1000 # display every 10 ps
+outputTiming    1000 # display every 10 ps
+xstFreq         1000 # save every 10 ps
+dcdFreq         1000 # save every 10 ps
+restartfreq     1000 # update restart file every 10 ps
+
+######################################################
+# Temperature & Pressure Control
+######################################################
+Langevin                on
+LangevinDamping         5.0
+LangevinTemp            298.0
+LangevinPiston          on
+langevinPistonTarget    1.01325      # pressure in bar -> 1 atm
+langevinPistonPeriod    200.         # oscillation period around 200 fs
+langevinPistonDecay     100.         # oscillation decay time of 100 fs
+langevinPistonTemp      298.0        # coupled to heat bath
+
+######################################################
+# Nonbonded Setup
+######################################################
+## NOTE: the CHARMM36 force field uses force-switching
+## (vdwForceSwitching on) but the Drude model does NOT!
+## Drude uses a potential energy switch, so make sure to
+## specify these next options exactly as they are here.
+switching       on
+cutoff          12.0
+switchdist      10.0
+pairlistdist    16.0
+
+exclude         scaled1-4
+1-4scaling      1.0
+dielectric      1.0
+
+# Use Drude polarizable model
+drude           on
+drudeTemp       1
+drudeHardWall   on
+drudeDamping    20.0
+drudeBondLen    0.2
+drudeBondConst  40000
+
+drudeNbtholeCut 5.0
+
+######################################################
+# Constraints
+######################################################
+rigidBonds      all
+rigidTolerance  0.00001
+rigidIterations 100
+useSettle       on
+
+######################################################
+# Electrostatics
+######################################################
+PME yes
+PMEGridSizeX 30
+PMEGridSizeY 30
+PMEGridSizeZ 30
+
+######################################################
+# Unit Cell Definition
+######################################################
+useFlexibleCell   no
+useGroupPressure  yes
+cellOrigin 0 0 0
+wrapAll on
+MARGIN  5.0
+
+#####################################################
+# GaMD Parameters                                
+#####################################################
+accelMD                  on            
+accelMDdual              on 
+accelMDdihe              on
+accelMDG                 on            
+accelMDGiE               1             
+
+accelMDGcMDSteps         0             
+accelMDGEquiSteps        0             
+accelMDGcMDPrepSteps     0             
+accelMDGEquiPrepSteps    0             
+accelMDOutFreq           1000
+
+accelMDGStatWindow       20000
+
+accelMDGsigma0P          6.0           
+accelMDGsigma0D          6.0           
+
+accelMDGRestart          on
+accelMDGRestartfile      <BASENAME>.rst.gamd
+
+# Run for 10.0 ns
+run 10000000 

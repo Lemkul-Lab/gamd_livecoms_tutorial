@@ -1,0 +1,128 @@
+* calculate phi/psi of 1-42
+* residues that overlap with 5n5b structure
+
+dimens chsize 1000000
+! Read topology and parameters (aka force field)
+stream toppar_drude_master_protein_2019f.str
+
+! Read PSF and initial/reference coordinates
+read psf xplor card name ala.drude.nowat.xplor.psf
+read coor pdb resid name ala.drude.nowat.0.pdb
+coor copy comp
+
+! output file for angles
+open read  unit 13 file name full_nowat.dcd
+traj query unit 13
+
+! set loop for all seg of pro
+set seg1  PROA
+
+! set s    1
+! set nseg 12
+! label segloop
+
+
+    ! process phi/psi for each residue
+    set r    1
+    set nres 1
+    label resloop
+
+        open write unit 30 card name phi.@r.dat
+	open write unit 31 card name psi.@r.dat
+        open write unit 50 card name omega.@r.dat 
+
+        ! phi: CAY-N-CA-C
+        !   * CY(i-1) in case r == 1
+        ! psi: N-CA-C-NT
+        !   * NT(i+1) in case r == nres
+
+       ! previous residue
+        calc p = @r - 1
+        if @r .eq. 1 then
+           set p @r
+        endif
+
+        ! next residue
+        calc q = @r + 1
+        if @r .eq. @nres then
+            set q @r
+        endif
+
+        ! set atom labels for phi and psi
+        set c1 CAY
+        !if @r .eq. 1 then
+        !    set c1 CY
+        !endif
+        set n1 N
+        set ca1 CA
+        set c2 C
+        set n2 NT
+        set ca2 CAT    
+      ! if @r .eq. @nres then
+           ! set n2 NT
+      ! endif
+        !traj firstu 13 nunit 1 begin ?start stop ?stop skip ?skip
+        traj firstu 13 nunit 1 begin 0 stop ?NFILE skip 1
+
+        ! for calculating statistics later
+!        set phitot 0
+!        set psitot 0
+!        set phiavg 0
+!        set psiavg 0
+
+        set i 1
+        label trjloop
+            traj read
+   	    
+            calc t = @i * 0.01
+		
+	    format (f8.3) 
+
+           ! phi
+            quick PROA @p @c1 PROA @r @n1 PROA @r @ca1 PROA @r @c2
+            set phi ?PHI
+	    
+
+!            calc phitot = @phitot + @phi
+
+            quick PROA @r @n1 PROA @r @ca1 PROA @r @c2 PROA @q @n2
+            set psi ?PHI
+
+!            calc psitot = @psitot + @psi
+
+            quick PROA @r @ca1 PROA @r @c1 PROA @q @n2 PROA @q @ca2
+            set ome ?PHI
+
+!            calc ometot = @ometot + @ome
+
+            write title unit 30
+            * @phi 
+            *
+           
+	    write title unit 31
+	    * @psi
+	    *
+ 
+            write title unit 50
+            * @ome
+            *
+
+    	    format
+
+            incr i by 1
+        if @i .le. ?NFILE goto trjloop
+        
+        rewind unit 13
+
+        incr r by 1
+    if @r .le. @nres goto resloop
+
+!    incr s by 1
+! if PROA .le. @nseg goto segloop
+
+
+close unit 13
+close unit 30
+close unit 31
+
+stop

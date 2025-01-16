@@ -1,0 +1,55 @@
+* Remove overall translation/rotation. 
+* Make a new trajectory with solvent removed.
+*
+
+dimens chsize 1000000
+
+! Read topology and parameters (aka force field)
+stream toppar_drude_master_protein_2019f.str
+
+! Read PSF and initial/reference coordinates
+read psf xplor card name ala.drude.psf 
+read coor pdb resid name gamd_equil.coor 
+coor copy comp
+
+!Setup a cubic box with periodic boundary conditions
+set boxsize 28.8169091496  
+!================================= IMAGE ====================================
+CRYSTAL DEFINE CUBIC @boxsize @boxsize @boxsize 90.00 90.00 90.00 
+CRYSTAL BUILD NOPER 0 CUTOFF 12.0
+IMAGE BYSEGMENT XCEN 0.0 YCEN 0.0 ZCEN 0.0 sele segid PROA end
+IMAGE BYRESID XCEN 0.0 YCEN 0.0 ZCEN 0.0 sele resn SWM4 end
+IMAGE BYRESID XCEN 0.0 YCEN 0.0 ZCEN 0.0 sele resn POT end
+IMAGE BYRESID XCEN 0.0 YCEN 0.0 ZCEN 0.0 sele resn CLA end
+!=============================================================================
+
+!Open file units for input and output trajectory
+open read  unit 13 file name full.dcd
+open write unit 15 file name full_nowat.dcd
+
+define keep sele segid PROA end
+
+prnlev 1
+
+!"Merge" to create a new trajectory with protein. The protein will
+!  be re-oriented to have minimum rms wrt CA heavy atoms in comparison set
+merge firstu 13 nunit 1 output 15 sele keep end -
+      recenter orient sele segid PROA .and. type CA end
+
+close unit 13
+close unit 15
+
+! write coordinate file for visualization
+bomlev -1
+coor swap   ! bring comp to main
+dele atom sele .not. keep end 
+open unit 90 write card name ala.drude.nowat.0.pdb
+write coor pdb unit 90
+close unit 90
+
+! needed for later extracting frames from DCD
+open unit 91 write card name ala.drude.nowat.xplor.psf
+write psf xplor card unit 91
+close unit 91
+
+stop
