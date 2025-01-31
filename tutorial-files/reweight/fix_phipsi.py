@@ -2,8 +2,6 @@
 # Script to ensure values wrap properly from 
 # -180 to 180 in an .xvg file
 #
-# Removes values outside the -180-180 range
-#
 # Note: .xvg files are expected to be tab-separated
 #
 #
@@ -29,20 +27,20 @@ def get_key_from_value(d,val):
 
 lines = f.readlines()
 
-#for line in lines[5:]:
-    #print(line)
-    #o.write(line)
-
+# pull phi, psi, and pmf into variables
 for line in lines[5:]:
     phi = line.split()[0]
     # print(phi)
     psi = line.split()[1]
     pmf = line.split()[2]
     
+    # set up a dictionary to match pmf to phi and psi
     if -180 <= float(psi) <= 180 and -180 <= float(phi) <= 180:
         d_pmf[phi,psi] = pmf
 
 # print(d_pmf)
+
+# update pmf values for phi = 180 and psi = 180
 for key in d_pmf:
     # fix values for phi = 180 first
     if key[0] == "180.0": 
@@ -56,19 +54,12 @@ for key in d_pmf:
         s_psi = -1 * float(key[1]) + 0
         s_val = d_pmf[str(s_phi),str(s_psi)]
     
-    #elif key[1] == "180.0":
-    #    s_phi = float(key[0]) + 0 #add 0 to avoid strange -0.0 error when multiplying 0 by -1
-    #    s_psi = -1 * float(key[1]) + 0
-    #    s_val = d_pmf[str(s_phi),str(s_psi)]
- 
-
     else:
         s_val = d_pmf[key[0], key[1]]
 
+    # print updated pmf surface values to file
     newline=str(key[0]) + "\t" + str(key[1]) + "\t" + str(s_val) + "\n" 
     o.write(newline)
             
-            
-
 f.close()
 o.close()

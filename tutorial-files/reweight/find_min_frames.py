@@ -1,14 +1,17 @@
-# Script to pull frames of minima from 2D CV file
+# Example script to pull frames of minima from 2D CV file
+# 01/23 HMM
 
 import sys,os
 import numpy as np
 
+# read in input file and specify output file name
 cv_file = sys.argv[1]
 out_file = sys.argv[2]
 
 f = open(cv_file, "r")
 o = open(out_file, "w")
 
+# set directories for each minima on FES
 AT_minG = []
 AT_minH = []
 AT_minI = []
@@ -22,12 +25,14 @@ GT_minB = []
 GT_minC = []
 
 
+# parse the CV file to pull CV1 and CV2
 for i, line in enumerate(f.readlines()):
     #print(line)
     line = line.split()
     ermsd = float(line[0])
     angle = float(line[1])
    
+    # specify ranges of CV1 and CV2 for minima and add the frame number to list
     if (1.14 < ermsd < 1.17) and (88 < angle < 92):
         tranF.append(i)
         print(i, ermsd, angle)
@@ -63,6 +68,7 @@ for i, line in enumerate(f.readlines()):
 #    elif (1.38 < ermsd < 1.48) and (28 < angle < 42):
 #        AT_minJ.append(i)
 
+# write lists to output file if desired
 #o.write("G: " + str(AT_minG) + "\n"
 #        "H: " + str(AT_minH) + "\n"
 #        "I: " + str(AT_minI) + "\n" 

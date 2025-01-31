@@ -1,4 +1,5 @@
 #!/bin/bash
+# PyReweighting script developed by the Miao lab from the PyReweighting repository
 dir_codes=/home/hmichel/pyreweighting/
 Emax=100
 cutoff=10

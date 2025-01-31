@@ -18,7 +18,7 @@ outf.write("# phi  \t  psi  \t  pmf \n")
 
 # iterate over file lines 
 for line in inf.readlines()[5:]:
-    line = re.split(",  | \t|  ", line) # GAMD has weird formatting
+    line = re.split(",  | \t|  ", line) # GAMD specific formatting
     cv1 = line[0]
     cv2 = line[1]
     pmf = line[2].strip("\n")
