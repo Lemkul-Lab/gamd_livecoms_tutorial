@@ -20,14 +20,14 @@ Releases:
 
 ## Contributors and Maintainers
 
-**Haley M. Michel**
-*Virginia Tech*
+- **Haley M. Michel**
+ *Virginia Tech*
  📧 [hmichel@vt.edu](mailto:hmichel@vt.edu)
 
-**Marcelo D. Poleto**
-*University of Sao Paolo*
-📧 [marcelodepolo@gmail.com](mailto:marcelodepolo@gmail.com)
+- **Marcelo D. Poleto**
+ *University of Sao Paolo*
+ 📧 [marcelodepolo@gmail.com](mailto:marcelodepolo@gmail.com)
 
-**Justin A. Lemkul**
-*Virginia Tech*
-📧 [jalemkul@vt.edu](mailto:jalemkul@vt.edu)
+- **Justin A. Lemkul**
+ *Virginia Tech*
+ 📧 [jalemkul@vt.edu](mailto:jalemkul@vt.edu)
