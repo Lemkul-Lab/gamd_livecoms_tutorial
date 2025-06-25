@@ -17,6 +17,7 @@ Revised, accepted versions of the manuscript are released with an increase in th
 
 Releases:
 - submitted_v0.1: initial manuscript submitted for peer review 
+- submitted_v0.2: revised version submitted in response to reviewers' comments
 
 ## Contributors and Maintainers
 
