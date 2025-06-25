@@ -63,7 +63,7 @@
 %%% IMPORTANT USER CONFIGURATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\newcommand{\versionnumber}{0.1}  % you should update the minor version number in preprints and major version number of submissions.
+\newcommand{\versionnumber}{0.2}  % you should update the minor version number in preprints and major version number of submissions.
 % Do not add a newline in the next command, no matter how long the repository name is, as it will break the link in the PDF.
 \newcommand{\githubrepository}{\url{https://github.com/Lemkul-Lab/gamd_tutorial.git}}  %this should be the main github repository for the article.
 
@@ -176,7 +176,7 @@ Molecular dynamics (MD) simulations play a key role in studying the dynamics and
 
 During GaMD simulations, biases are added to the potential energy (or subsets of the potential energy) of the system, thereby lowering energy barriers and facilitating transitions between conformational states. As a result, GaMD simulations allow for sampling of rarer states in shorter simulation times than otherwise would be necessary in unbiased simulations, typically referred to as ``conventional'' simulations in previous GaMD literature and in this tutorial. Originally implemented in the AMBER MD suite~\cite{salomon-ferrer_overview_2013}, GaMD is implemented in NAMD~\cite{miao_gaussian_2015}, OpenMM~\cite{copeland_gaussian_2022}, and TINKER~\cite{celerse_efficient_2022}, and has now been combined with other enhanced sampling methods such as replica exchange~\cite{huang_replica_2018} and weighted-ensemble approaches~\cite{ahn_gaussian-accelerated_2021}. The original GaMD algorithm has also been extended to apply selective boosting to enhance ligand binding in protein-ligand complexes in LiGaMD~\cite{miao_ligand_2020} and now also boosts protein residues with direct ligand interactions in LiGaMD2~\cite{wang_ligand_2023},  bound peptides in Pep-GaMD~\cite{wang_peptide_2020}, and protein-protein interactions PPI-GaMD~\cite{wang_proteinprotein_2022}.
 
-Despite these advances, GaMD, like any enhanced sampling algorithm, requires a detailed understanding of not only how to execute the simulations but what the underlying theory is to get the most benefit from applying the technique to the system of interest. As such, here, we present a tutorial for employing the GaMD method to alanine dipeptide using the NAMD simulation suite. After reading and completing the tutorial, the user should be able to:
+Despite these advances, GaMD, like any enhanced sampling algorithm, requires a detailed understanding of not only how to execute the simulations but what the underlying theory is to get the most benefit from applying the technique to the system of interest. As such, here, we present a tutorial for employing the GaMD method to alanine dipeptide using the NAMD simulation suite utilizing the AMBER ff19SB, CHARMM36m, and Drude-2019 force fields. The inclusion of multiple force fields in this tutorial is designed to enable the user to assess the robustness of GaMD results and understand the differences between each force field. After reading and completing the tutorial, the user should be able to:
 \begin{enumerate}
     \item Identify key elements of the theory underlying GaMD simulations
     \item Prepare and run GaMD simulations using NAMD
@@ -195,6 +195,9 @@ command line here
 \end{lstlisting}
 
 \subsection{Software Requirements} The GaMD algorithm is implemented in NAMD versions 2.12 and above, which can be freely downloaded for academic use from the Theoretical and Computational Biophysics Group at the University of Illinois at Urbana-Champaign ( \url{https://www.ks.uiuc.edu/Development/Download/download.cgi?PackageName=NAMD}). NAMD versions prior to 2.12 will be unable to run the simulations and therefore cannot be used with this tutorial. Once simulations are complete, access to CatDCD (\url{https://www.ks.uiuc.edu/Development/MDTools/catdcd/}) and an MD analysis software will be required. In this tutorial, we will reference AmberTools version 22~\cite{case_ambertools_2023}, CPPTRAJ~\cite{roe_ptraj_2013}, and CHARMM~\cite{hwang_charmm_2024}. Free energy surfaces will be constructed using the PyReweighting Toolkit, which can be obtained from the Miao lab GitHub page (\url{https://github.com/MiaoLab20/pyreweighting}). A conda environment will be required for reweighting and should be built with Python version 3.10. Several other Python packages will need to be installed within the environment. NumPy 1.23.3, SciPy 1.9.1, and Matplotlib 3.6.1 will be the most important but we have also exported the conda environemnet used in this tutorial as a YAML (.yml) file in the associated GitHub repository. We note that the tutorial has been tested with these versions, and that while others may work just fine, we cannot make any guarantees.
+
+
+\subsection{Hardware Requirements} The GaMD simulations in this tutorial were performed using CPU nodes on the Advanced Research Computing infrastructure at Virginia Tech. AMBER and C36m systems performed similarly with speeds around 500 ns/day utilizing 512 cores across 4 Intel Xeon Platinum 9242 nodes. Drude systems using 576 cores across 6 nodes performed at 76 ns/day. GaMD simulations for alanine dipeptide required about 50 GB of storage to store the output from equilibration and production runs. Reweighting directories require minimal storage, less than 1 GB.
 
 \section{Theory} \label{sec:theory}
 \subsection{Basic GaMD Theory} \label{ss:basics}
@@ -367,7 +370,6 @@ Thus, if using cumulant expansion to the second order, the reweighting factor be
 
 \bigskip
 \bigskip
-\bigskip
 
 \begin{equation}
     \eqnmarkbox[Fuchsia]{origdist}{p\left(A_{j}\right)} =
@@ -387,8 +389,6 @@ Thus, if using cumulant expansion to the second order, the reweighting factor be
 
 \bigskip
 \bigskip
-\bigskip
-\bigskip
 
 Doing so redistributes the probability density based on the GaMD boost, correcting for over-sampling of high energy states and under-sampling of low-energy states. In addition to the probability distribution, the free energy is also calculated using cumulant expansion to the second order shown in Eq.~\ref{eqn:reweightfreener1}:
 
@@ -397,12 +397,12 @@ Doing so redistributes the probability density based on the GaMD boost, correcti
 
 \begin{equation} 
     \eqnmarkbox[PineGreen]{reweight_fe}{F\left(A_{j}\right)} = \eqnmarkbox[Green]{mod_fe}{F^{*}\left(A_{j}\right)} - \sum\limits_{k=1}^{2}\frac{\beta^{k}}{k!} C_{k} + 
-    \eqnmarkbox[YellowGreen]{force}{F_{c}}
+    \eqnmarkbox[YellowGreen]{constant}{F_{c}}
     \label{eqn:reweightfreener1}
 \end{equation}
 \annotate[yshift=1.2em, align=center, color=Black]{above,left}{reweight_fe}{Reweighted \\ Free Energy}
 \annotate[yshift=1.2em, align=center, color=Black]{above,right}{mod_fe}{Biased \\ Free Energy}
-\annotate[yshift=1.2em, align=center, color=Black]{above,right}{force}{Force Constant}
+\annotate[yshift=1.2em, align=center, color=Black]{above,right}{constant}{Constant}
 
 
 Finally, the reweighted energy profile for each bin, $j$, can be calculated using the reweighted free energy, $F(A_{j})$, and the original probability distribution, $p(A_{j})$, using Eq.~\ref{eqn:reweightfreeener2}:
@@ -467,14 +467,14 @@ A full description of all GaMD parameters and their default values for NAMD can 
 
 \begin{description}
     \item[accelMD] Specifies whether accelerated MD is to be turned on or off. GaMD is an extension of aMD, so this setting must be on if you are using GaMD.
-    \item[accelMDdual] Specifies whether to apply ``dual-boost'' GaMD.
-    \item[accelMDdihe] Specifies whether to apply dihedral boost. If ``dual-boost'' is on, then this keyword must be set to ``on'' as well. Doing so will provide the greatest sampling acceleration.
+    \item[accelMDdual] Specifies whether to apply ``dual-boost'' GaMD. Doing so will provide the greatest sampling acceleration.
+    \item[accelMDdihe] Specifies whether to apply dihedral boost. If ``dual-boost'' is on, then this keyword must be set to ``on'' as well. 
     \item[accelMDG] Specifies the use of GaMD as the accelerated MD method.
     \item[accelMDGiE] Sets $E$ to either the lower bound (1) or upper bound (2). Lower bound (1) sets $E$ to $V_{max}$ and is the typical setting.
     \item[accelMDGcMDPrepSteps] Number of preparatory conventional MD steps.
-    \item[accelMDGcMDSteps] Number of conventional MD steps after preparatory steps.
+    \item[accelMDGcMDSteps] Total number of conventional MD steps, including preparatory steps.
     \item[accelMDGEquiPrepSteps] Number of preparatory GaMD equilibration steps.
-    \item[accelMDGEquiSteps]  Number of GaMD equilibration steps after preparatory steps.
+    \item[accelMDGEquiSteps] Total number of GaMD equilibration steps, including preparatory steps.
     \item[accelMDOutFreq] Specifies the output frequency of the GaMD algorithm.
     \item[accelMDGStatWindow]  Sets how often to calculate the average and standard deviation of the boost potential during GaMD. This value should be set to $\sim4\times$ the number of particles in the simulation system.
     \item[accelMDGsigma0P] Upper limit of the standard deviation of the total boost potential.
@@ -488,13 +488,39 @@ A full description of all GaMD parameters and their default values for NAMD can 
 \subsection{Running Conventional Simulations and GaMD Equilibration} \label{ss:cmd_gamd_equil}
 Initially, GaMD starts with a specified number of conventional simulation steps during which no boost is applied to the system. This step gathers statistics related to the potential energy of the system, including $V_{max}$, $V_{min}$, $V_{avg}$, $\sigma_{V}$, $E$, $k_{0}$, and $k$. To start the simulations, NAMD will require information about the structure of interest and the topology. Using this starting information, a short segment of preparatory steps (\texttt{accelMDGcMDPrepSteps}) is conducted before the conventional simulation segment to allow the biomolecule to adapt to its simulation environment, basically to ensure the simulation will not crash. The user can specify any amount of steps for these different segments. Generally, the preparatory steps require less simulation time and therefore fewer steps since they are not used to collect statistics and refine the boost potential. This tutorial will not recommend a specific number of steps for each segment but previous studies using GaMD have employed 200,000 steps for the preparatory segment and 200,000 steps for the conventional segment when simulating larger biomolecules. Our chosen number of steps for alanine dipeptide will be discussed in Section~\ref{sec:tutorial}.
 
-Once the conventional segment is complete, equilibration preparatory steps will be conducted, followed by the equilibration segment. During the equilibration segment, the statistics are refined and $E$ is allowed to increase until it levels off. Boosts are also applied during this stage and refined based on the changes to $E$. Prior work states that $k_{0}$ should stabilize or reach 1 throughout equilibration to determine if your equilibration simulation has reached convergence~\cite{miao_gaussian_2015}. However, we have found that it may also be beneficial to track $V_{max}$, as it still can increase even when $k_{0}$ reaches 1. We will discuss more on interpreting the output files in and monitoring the simulations in Section~\ref{ss:interpret_output}. If equilibration does not reach convergence in the designated number of steps, it can be extended using the GaMD restart file and by setting \texttt{accelMDGcMDPrepSteps}, \texttt{accelMDGcMDSteps}, and \texttt{accelMDGEquiPrepSteps} to \texttt{0}. Both conventional MD and GaMD equilibration are executed from the same script, which we have named \texttt{gamd\_equil.in} and can be found in each force field directory in the GitHub repository.
+Once the conventional segment is complete, the potential statistics are used to calculate $E$ and $k$. Then equilibration preparatory steps will be conducted, followed by the equilibration segment. During the equilibration stage, the potential statistics are updated and $E$ and $k_{0}$ are allowed to change until they level off. Boosts are also applied during this stage and refined based on the changes to $E$ and $k_{0}$. Prior work states that if \texttt{accelMDGiE} = 1, $k_{0}$ should stabilize or reach 1 by the end of equilibration. This outcome helps determine if the equilibration simulation is sufficient ~\cite{miao_gaussian_2015}. However, we have found that it may also be beneficial to track $V_{max}$, as it still can increase even when $k_{0}$ reaches 1. We will discuss more on interpreting the output files in and monitoring the simulations in Section~\ref{ss:interpret_output}. If equilibration does not reach convergence in the designated number of steps, it can be extended using the GaMD restart file and by setting \texttt{accelMDGcMDPrepSteps}, \texttt{accelMDGcMDSteps}, and \texttt{accelMDGEquiPrepSteps} to \texttt{0}. Both conventional MD and GaMD equilibration are executed from the same script, which we have named \texttt{gamd\_equil.in} and can be found in each force field directory in the GitHub repository. An example is also shown in Listing~\ref{gamd_prod}.
+
+\begin{lstlisting}[label=gamd_prod,caption=gamd\_equil.in, basicstyle=\small,backgroundcolor=\color{light-gray}]
+#########################################
+## GAMD                    
+#########################################
+accelMD                  on             
+accelMDdual              on
+accelMDdihe              on
+accelMDG                 on        
+accelMDGiE               1             
+         
+accelMDGcMDSteps         1000000        
+accelMDGEquiSteps        25000000     
+accelMDGcMDPrepSteps     100000         
+accelMDGEquiPrepSteps    100000         
+accelMDOutFreq           500
+
+accelMDGStatWindow       10000
+
+accelMDGsigma0P          6.0            
+accelMDGsigma0D          6.0 
+
+accelMDGRestart          off 
+accelMDGRestartFile      <BASENAME>.gamd  
+
+\end{lstlisting}
 
 \subsection{Running GaMD Production}
 \label{ss:gamd_production}
 Once it has been established that the GaMD equilibration has converged by monitoring $k_{0}$ and $V_{max}$, the system can proceed to the production stage. At the end of equilibration, the value of $E$ is set and does not change throughout production. Here, boosts are applied based on the difference between $E$ and the potential energy at the current step in the simulation, $V\left(\vec{r}\right)$. The larger the difference in $E$ and $V\left(\vec{r}\right)$, the larger the magnitude of boost applied. 
 
-The run script is generally the same as the one used for conventional and equilibration, however, no conventional or equilibration steps will be performed. As such, \texttt{accelMDGcMDPrepSteps}, \texttt{accelMDGcMDSteps}, \texttt{accelMDGEquiPrepSteps}, and \texttt{accelMDGEquiSteps} are all set to \texttt{0}. The \texttt{run} parameter can be adjusted, as well, to suit a user's specific needs in terms of production simulation length. In addition, \texttt{accelMDGRestart} will need to be set to ``on'' so that the GaMD statistics and $E$ can be read in from the restart file, \texttt{gamd\_equil.gamd}. An example of the GaMD parameters for production is as follows:
+The run script is generally the same as the one used for conventional and equilibration, however, no conventional or equilibration steps will be performed. As such, \texttt{accelMDGcMDPrepSteps}, \texttt{accelMDGcMDSteps}, \texttt{accelMDGEquiPrepSteps}, and \texttt{accelMDGEquiSteps} are all set to \texttt{0}. The \texttt{run} parameter can be adjusted, as well, to suit a user's specific needs in terms of production simulation length. In addition, \texttt{accelMDGRestart} will need to be set to ``on'' so that the GaMD statistics and $E$ can be read in from the equilibration restart file, \texttt{gamd\_equil.gamd}. An example of the GaMD parameters for production is as follows:
 
 \begin{lstlisting}[label=gamd_prod,caption=md.*.in, basicstyle=\small,backgroundcolor=\color{light-gray}]
 #########################################
@@ -536,7 +562,7 @@ Throughout the GaMD process, several output files are created to monitor progres
     
 \end{itemize}
 
-The GaMD algorithm produces two files: the log file, \texttt{gamd\_equil.out} or \texttt{md.*.out}, that contains all the thermodynamics statistics of your system throughout the GaMD process; and the GaMD restart file, \texttt{gamd\_equil.gamd} or \texttt{*.gamd}, that contains information about the current stage of GaMD and is required to continue running a simulation from where it left off. GaMD equilibration will create one of each of these files, whereas every stride during production will have its own set of these output files.
+The GaMD algorithm produces two files: the log file, \texttt{gamd\_equil.out} or \texttt{md.*.out}, that contains all the thermodynamics statistics of your system throughout the GaMD process; and the GaMD restart file, \texttt{*.gamd}, which contains information about the current stage of GaMD and is required to continue running a simulation from where it left off, in the equilibration or production stages. GaMD equilibration will create one of each of these files, whereas every stride during production will have its own set of these output files.
 
 Taking a closer look at \texttt{gamd\_equil.out} in Listing~\ref{log}, this file contains the step by step output of GaMD and is a critical output file to inspect. All of the statistical data collected by the GaMD algorithm for each simulation step is found within this file. The top portion of this file details the NAMD environment setup for the simulation. The simulation has started running when the \texttt{run} keyword is executed and the number of steps for the simulation is printed to the \texttt{.log} files (Listing~\ref{log}, first line). Below this line, the GaMD algorithm will start printing the system potential energy statistics to the output file. These lines are used to track the statistics over time, verify that each stage is running correctly, and to monitor statistics throughout the simulation. An example of this section at the start of the conventional preparatory steps is shown in Listing~\ref{log}.
 
@@ -577,33 +603,34 @@ $\Delta{V_{T}}$ and $\Delta{V_{D}}$ are calculated using Eqn.~\ref{eqn:boost} an
 \begin{equation} 
     \eqnmarkbox[Peach]{}{\Delta{V_{T}}} =\frac{1}{2}k \left\{
     \eqnmarkbox[Sepia]{thresh}{E_{T}} - \left[
-    \eqnmarkbox[RoyalPurple]{currentnrg}{V\left(\vec{r}\right)} - 
-    \eqnmarkbox[Plum]{dihenrg}{V_{\tau})}\right]\right\}^{2}
+    \eqnmarkbox[RoyalPurple]{currentnrg}{V\left(\vec{r}\right)} + 
+    \eqnmarkbox[Apricot]{dihboost}{\Delta{V_{D}}}\right]\right\}^{2}
     \label{eqn:totboost}
 \end{equation}
 \annotate[yshift=1em, align=center, color=Black]{right}{currentnrg}{Current System \\ Potential Energy}
 \annotate[yshift=1em, align=center, color=Black]{left}{thresh}{Threshold Energy}
-\annotate[yshift=-0.5em, align=center, color=Black]{below, left}{dihenrg}{Dihedral Energy}
+
 
 \bigskip
 
 \begin{equation} 
     \eqnmarkbox[Apricot]{}{\Delta{V_{D}}} =\frac{1}{2}k \left\{
     \eqnmarkbox[Sepia]{}{E_{D}} - 
-    \eqnmarkbox[Plum]{}{V_{\tau}}\right\}^{2}
+    \eqnmarkbox[Plum]{dihenrg}{V_{\tau}}\right\}^{2}
     \label{eqn:totboost2}
 \end{equation}
+\annotate[yshift=-0.5em, align=center, color=Black]{below, left}{dihenrg}{Dihedral Energy}
 
 \bigskip
 
 On the same line \texttt{dVAVG} is the average boost up to the current point in the simulation. The remainder of this line reports the contributions of the various terms in the potential energy equation. For ``dual-boost'' GaMD, separate lines are printed to track statistics for the dihedral energy, \texttt{GAUSSIAN ACCELERATED MD: DIHED}, and the total potential energy, \texttt{GAUSSIAN ACCELERATED MD: TOTAL}. In these lines, \texttt{iE} indicates the setting of the threshold energy, and the remainder of the printed fields are the maximum, minimum, and average energy, the variation in energy, the threshold energy, \texttt{k0}, and the harmonic force constant for the current step. 
 
-During conventional and equilibration preparatory steps, no potential energy statistics are updated, and as such \texttt{sigmaV}, \texttt{E}, \texttt{k0}, and \texttt{k} all remain \texttt{0}. Without statistics, no boost can be calculated so \texttt{dV} and \texttt{dVAVG} also remain \texttt{0} throughout the preparatory step segments. The statistics start to be reported during the conventional segment while the boost values remain zero until the equilibration stage. During equilibration, $E$ and the boost are updated in their respective field as the system explores the conformational landscape. Once equilibration convergence has been observed through monitoring of $k$ and $E$ (see Section~\ref{sec:tutorial}), $E$ is held constant for production, remaining consistent in the output files, and the boost is calculated each step using Eq.~\ref{eqn:boost}. 
+During conventional preparatory steps, no potential energy statistics are updated, and as such \texttt{sigmaV}, \texttt{E}, \texttt{k0}, and \texttt{k} all remain \texttt{0}. Without statistics, no boost can be calculated so \texttt{dV} and \texttt{dVAVG} also remain \texttt{0} throughout the conventional preparatory step segments. The statistics start to be reported during the conventional segment while the boost values remain zero until the equilibration stages. During equilibration, $E$ and the boost are updated in their respective field as the system explores the conformational landscape. Once equilibration convergence has been observed through monitoring of $k$ and $E$ (see Section~\ref{sec:tutorial}), $E$ is held constant for production, remaining consistent in the output files, and the boost is calculated each step using Eq.~\ref{eqn:boost}. 
 
 Another output file, \texttt{*.gamd}, contains all the GaMD information from the last complete step. An example is shown in Listing~\ref{energyfile}. In it are two lines of information for the dihedral and total energies indicated by the single letter codes in the first column of the row, \texttt{D} and \texttt{T}. Following are the current step, \texttt{Vn}; the maximum energy, \texttt{Vmax}; the minimum energy, \texttt{Vmin}; the average energy, \texttt{Vavg}; the standard deviation, \texttt{sigmaV}; the variability from the mean, \texttt{M2}; the threshold energy, \texttt{E}; and \texttt{k}. For equilibration, only one \texttt{gamd\_equil.gamd} is produced, compared to production, during which a file is produced for each stride in our approach. 
 
 \begin{figure*}
-\begin{lstlisting}[label=energyfile,caption=system.gamd, basicstyle=\small,breaklines=true, backgroundcolor=\color{light-gray}]
+\begin{lstlisting}[label=energyfile,caption= Example of *.gamd file, basicstyle=\small,breaklines=true, backgroundcolor=\color{light-gray}]
 # NAMD accelMDG restart file
 # D/T Vn Vmax Vmin Vavg sigmaV M2 E k
 D 10000 23.42610900347244 2.4217065108565792 8.5355531287135644 2.4186399083415688 5.84981900622251123e+04 23.42610900347244 0.04760906673501196
@@ -654,7 +681,7 @@ Alanine dipeptide has long been used as a model system for validating force fiel
 \subsection{GaMD System Preparation} 
 
 \subsubsection{The System}
-We are interested in the conformational sampling of alanine dipeptide. Three systems were prepared using the AMBER ff19SB, CHARMM36m, and Drude-2019 force fields which we will refer to as ff19SB, C36m, and Drude, respectively. Details on how to construct each system with their respective FF will not be given here, and the user should construct and minimize their system in whatever manner is appropriate. Briefly, the AMBER ff19SB system was constructed using AmberTools~\cite{case_ambertools_2023} and then converted to C36m. The Drude system was then constructed from the C36m system using the CHARMM program~\cite{hwang_charmm_2024}. Initial C36m and Drude structures were obtained from a brief minimization using a previously published protocol~\cite{lemkul_preparing_2021}.
+We are interested in the conformational sampling of alanine dipeptide. Three systems were prepared using the AMBER ff19SB, CHARMM36m, and Drude-2019 force fields which we will refer to as ff19SB, C36m, and Drude, respectively. Details on how to construct each system with their respective FF will not be given here, and the user should construct and minimize their system in whatever manner is appropriate. Briefly, the AMBER ff19SB system was constructed using AmberTools~\cite{case_ambertools_2023} by centering the solute in a cuboid box defined by a distance of 12 {\AA} between the solute and box edges. A similar approach was used to build the C36m system, using a cubic box and a minimum distance of 12 {\AA} between the solute and box edges. The Drude system was then constructed from the C36m system using the CHARMM program~\cite{hwang_charmm_2024}. Initial C36m and Drude structures were obtained from a brief minimization using a previously published protocol~\cite{lemkul_preparing_2021}. For reproduction purposes, we provide all coordinates and topologies in the GitHub repository.
 
 \subsubsection{Setting Up the Working Directories} 
 Topology and coordinate files for each system are located in the directory named according to the force field used (\texttt{ff19sb}, \texttt{c36}, and \texttt{drude} in our case). For AMBER ff19SB, the parameter and topology file (\texttt{ala.parm7}) and the coordinate file (\texttt{ala.rst7}) should be placed within the \texttt{ff19sb} directory while for C36m and Drude, \texttt{ala.c36.psf} and \texttt{ala.c36.pdb} should be placed in \texttt{c36m} and \texttt{ala.drude.psf} and \texttt{ala.drude.pdb} should be placed in \texttt{drude}. A directory for GaMD equilibration and production should be created in the directory corresponding to each system. For clarity, we named these directories \texttt{equil} and \texttt{prod}. Dynamics input files for equilibration, (\texttt{gamd\_equil.in}) and production (\texttt{md.template}), and submission scripts for SLURM queueing (\texttt{sub\_gamd\_equil.sh} and \texttt{sub\_gamd\_prod.sh}) can be found in the associated force field directories on GitHub and should also be placed in the respective equilibration and production directories. All force field parameters for ff19SB are found within the parm7 file while the parameter files for C36m and Drude systems are listed in the run scripts and can be obtained from the MacKerell lab website (\url{https://mackerell.umaryland.edu/charmm_drude_ff.shtml}), if required. 
@@ -701,7 +728,7 @@ Once \texttt{gamd\_equil.in} and \texttt{sub\_gamd\_equil.in} have been edited, 
 $ sbatch sub_gamd_equil.sh
 \end{lstlisting}
 
-During equilibraton, it is important that the simulation is monitored to determine when it converges. We have found it useful to monitor $E$ in addition to $k_{0}$ to assess convergence. To do so, we can extract both values from the \texttt{gamd\_equil.out} and graph them as a function of the equilibration time. The \texttt{grep} command below is an example of how we can create a new file containing only the values of $k_{0}$ for the dihedral boost from the 18\textsuperscript{th} column of the \texttt{GAUSSIAN ACCELERATED MD: DIHED} line: 
+During equilibration, it is important that the simulation is monitored to determine when it converges. We have found it useful to monitor $E$ in addition to $k_{0}$ to assess convergence. To do so, we can extract both values from the \texttt{gamd\_equil.out} and graph them as a function of the equilibration time. The \texttt{grep} command below is an example of how we can create a new file containing only the values of $k_{0}$ for the dihedral boost from the 18\textsuperscript{th} column of the \texttt{GAUSSIAN ACCELERATED MD: DIHED} line: 
 
 \begin{lstlisting}[style=MyBash]
 $ grep "GAUSSIAN ACCELERATED MD: DIHED" gamd_equil.out | awk '{print NR/1000, $18}' > k0_dihe.dat
@@ -775,7 +802,7 @@ Using a command described in the PyReweighting tutorial (\url{https://mccammon.u
 $ grep "ACCELERATED MD" gamd_md.log | grep -v "GAUSSIAN" | grep -v "ACTIVE" | awk '{print $6/(0.001987*298)" " $4 " " $6 " "$8}' > raw_weights.dat
 \end{lstlisting}
 
-This command will created a file called \texttt{raw\_weights.dat} (Listing ~\ref{weights}), containing the boost in $k_{B}T$ (column 1) alongside the associated simulation step (\$4, column 2), the boost in kcal/mol of that step (\$6, column 3), and the average boost (\$8, column 4). 
+This command will create a file called \texttt{raw\_weights.dat} (Listing ~\ref{weights}), containing the boost in $k_{B}T$ (column 1) alongside the associated simulation step (\$4, column 2), the boost in kcal/mol of that step (\$6, column 3), and the average boost (\$8, column 4). 
 
 
 \begin{lstlisting}[label=weights, caption=raw\_weights.dat, basicstyle=\small, backgroundcolor=\color{light-gray}]
@@ -893,7 +920,7 @@ For cumulant expansion to the second order, we will focus on the values in \text
 
 \begin{figure*}[t]
     \includegraphics[scale=0.68]{main_figs/alad_allfes_500.png}
-    \caption{FES for all alanine dipeptide systems. The global minimum in each surface is indicated by a red arrow.}
+    \caption{FES for all alanine dipeptide systems. The global minimum in each surface is indicated by a red arrow. FES represent 500 ns of simulation time.}
     \label{fig:alad_allffs}
 \end{figure*}
 
@@ -944,7 +971,7 @@ Thus, it is possible to identify the exact location of the global minimum and ot
 Throughout the GaMD process, there are a few places of consideration that can potentially alter the system's sampling and FES. We have included a few considerations below that we experienced while setting up our simulations.
 
 \subsubsection{Statistical Window size} 
-The \texttt{accelMDGStatWindow} keyword is specified in the input scripts for equilibration and production and determines how often statistical averaging for the potential energies is performed and how often the boost is recalculated. Conventionally, this value should be around four times the total number of particles in the system. For the alanine dipeptide systems, this convention would suggest a window between 10000 and 20000 steps would be appropriate. For the tutorials, we used a value of 10000 for each of our systems, but we performed an additional simulation using 20000 to compare the resulting FES. The surfaces for ff19SB with \texttt{accelMDGStatWindow} values of 10000 and 20000 steps are shown in Figure~\ref{fig:binstatw}. The general shape of the surfaces differ only slightly although the surface arising from the simulation with \texttt{accelMDGStatWindow} set to 20000 is systematically higher by 3-4 kcal/mol than that of  the system with \texttt{accelMDGStatWindow} set to 10000. Applying \texttt{accelMDGStatWindow} 20000 did have a lower energy minimum prior to normalization during reweighting, which could be the cause of the shift in PMF. Additionally, these differences could be a result of under- or over-sampling of the same state across these two systems and may therefore not be directly linked to the specified value of \texttt{accelMDGStatWindow}. 
+The \texttt{accelMDGStatWindow} keyword is specified in the input scripts for equilibration and production and determines how often statistical averaging for the potential energies is performed and how often the boost is reported. Conventionally, this value should be around four times the total number of particles in the system. For the alanine dipeptide systems, this convention would suggest a window between 10000 and 20000 steps would be appropriate. For the tutorials, we used a value of 10000 for each of our systems, but we performed an additional simulation using 20000 to compare the resulting FES. The surfaces for ff19SB with \texttt{accelMDGStatWindow} values of 10000 and 20000 steps are shown in Figure~\ref{fig:binstatw}. The general shape of the surfaces differ only slightly although the surface arising from the simulation with \texttt{accelMDGStatWindow} set to 20000 is systematically higher by 3-4 kcal/mol than that of  the system with \texttt{accelMDGStatWindow} set to 10000. Applying \texttt{accelMDGStatWindow} 20000 did have a lower energy minimum prior to normalization during reweighting, which could be the cause of the shift in PMF. Additionally, these differences could be a result of under- or over-sampling of the same state across these two systems and may therefore not be directly linked to the specified value of \texttt{accelMDGStatWindow}. 
 
 \begin{figure*}[h]
     \includegraphics[scale=0.68]{main_figs/bin_statw_comp.png}
@@ -953,7 +980,7 @@ The \texttt{accelMDGStatWindow} keyword is specified in the input scripts for eq
 \end{figure*}
 
 \subsubsection{Bin Width} 
-Bin width is specified during the reweighting process and will impact the way the data are binned, thus potentially altering the location of the global minimum on the reweighted FES. We compared the use of different bin sizes by reweighting using \texttt{-discx} and \texttt{-discy} set to 6 and 15 (Figure~\ref{fig:binstatw}). Bin size will be based on the amount of CV data collected as well as the range of the data values. Previously published GaMD studies using alanine peptide used a bin size of 6$^{\circ}$.\cite{miao_gaussian_2015} In our approach, such a small bin size was not appropriate to visualize the surfaces (Figure ~\ref{fig:binstatw}, top and bottom left), most likely because we saved fewer frames than the previously published studies, implying that the bin width may be directly connected to the number of data points saved during the simulation.
+Bin width is specified during the reweighting process and will impact the way the data are binned, thus potentially altering the location of the global minimum on the reweighted FES. We compared the use of different bin sizes by reweighting using \texttt{-discx} and \texttt{-discy} set to 6 and 15 (Figure~\ref{fig:binstatw}). Bin width will be based on the amount of CV data collected as well as the range of the data values. Previously published GaMD studies using alanine peptide used a bin size of 6$^{\circ}$.\cite{miao_gaussian_2015} In our approach, such a small bin size was not appropriate to visualize the surfaces (Figure ~\ref{fig:binstatw}, top and bottom left), most likely because we saved fewer frames than the previously published studies, implying that the bin width may be directly connected to the number of data points saved during the simulation.
 
 \subsubsection{Bin Cutoff}
 Another consideration that may be dependent upon the number of frames is the bin cutoff. This cutoff is specified during the reweighting process to ensure undersampled bins do not dominate the free energy surfaces. The value specified using \texttt{cutoff} sets a minimum number of frames required for that bin to be used during reweighting, any bin containing a number of frames less than the specified value is not considered during reweighting. Thus, different cutoff values can result in FES with different global minima (Figure ~\ref{fig:binstatw}).
@@ -979,6 +1006,7 @@ An integral component of running MD simulations is ensuring that the system samp
     \label{fig:drude_conv}
 \end{figure*}
 
+While we determined convergence across time blocks in 500 ns of simulation time, this interval is subject to change depending on the underlying dynamics in system of study and the behaviors of interest.
 
 \subsection{Summary and Review of Objectives}
 In this tutorial, the user has been guided through the process of completing a GaMD simulation. To review, the objectives for this tutorial were as follows: 
